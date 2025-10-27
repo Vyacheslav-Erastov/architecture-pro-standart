@@ -1,0 +1,24 @@
+@startuml Context Diagram
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(employee_bank, "Сотрудник кол-центра банка", "Консультирует клиентов по телефону")
+Person(employee_partner, "Сотрудник партнёрского кол-центра", "Консультирует клиентов по телефону")
+
+System(bank_callcenter, "Система кол-центра банка", "Обеспечивает работу операторов кол-центра")
+System(partner_callcenter, "Система партнёрского кол-центра", "Внешняя система партнёрского кол-центра")
+
+System(rate_service, "Сервис ставок REST API", "Предоставляет актуальные ставки по API")
+System(rate_export_service, "Сервис выгрузки ставок", "Формирует и передаёт файлы партнёрам")
+System(sftp_server, "SFTP Сервер", "Обеспечивает безопасный файловый обмен")
+
+Rel(employee_bank, bank_callcenter, "Просматривает ставки", "HTTPS")
+Rel(employee_partner, partner_callcenter, "Просматривает ставки", "Локальный UI")
+
+Rel(bank_callcenter, rate_service, "Запрашивает актуальные ставки", "REST/JSON")
+
+Rel(rate_export_service, rate_service, "Получает ставки для выгрузки", "JDBC/Oracle")
+Rel(rate_export_service, sftp_server, "Загружает файлы со ставками", "SFTP")
+Rel(sftp_server, partner_callcenter, "Предоставляет файлы для импорта", "SFTP")
+
+@enduml

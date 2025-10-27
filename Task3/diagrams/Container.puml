@@ -1,0 +1,83 @@
+@startuml Container Diagram MVP
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(client, "Клиент", "Клиент банка")
+Person(backoffice_employee, "Сотрудник бэк-офиса", "Менеджер депозитного бэк-офиса")
+Person(frontoffice_employee, "Сотрудник фронт-офиса", "Менеджер в отделении банка")
+Person(callcenter_agent, "Оператор кол-центра", "Оператор в кол-центре банка")
+Person(credit_employee, "Сотрудник кредитного отдела", "Менеджер кредитного бэк-офиса")
+
+System_Boundary(c1, "Интернет-банк (существующий)") {
+    Container(ib_web, "Веб-интерфейс", "ASP.NET MVC 4.5", "Веб-интерфейс интернет-банка")
+    Container(ib_business, "Бизнес-логика", ".NET Framework 4.5", "Бизнес-логика проведения операций")
+    ContainerDb(ib_database, "База данных", "MS SQL", "Хранилище данных интернет-банка")
+}
+
+System_Boundary(c2, "Сайт банка (существующий)") {
+    Container(website_ui, "Веб-интерфейс", "PHP + React.js", "Маркетинговый сайт и форма заявки")
+}
+
+System_Boundary(c3, "Сервис депозитов MVP (новый)") {
+    Container(deposit_api, "API депозитов", ".NET Framework 4.5", "REST API для управления заявками на депозиты")
+    ContainerDb(deposit_db, "База заявок", "MS SQL", "Хранилище заявок на депозиты")
+    Container(admin_panel, "Админ-панель заявок", "React.js + .NET Core", "Интерфейс для обработки заявок бэк-офисом")
+}
+
+System_Boundary(c4, "АБС (существующая)") {
+    Container(abs_client, "Клиент АБС", "Delphi", "Десктопное приложение АБС")
+    ContainerDb(abs_database, "База АБС", "Oracle", "Основная база данных банка")
+}
+
+System_Boundary(c5, "Система кол-центра (существующая)") {
+    Container(cc_web, "Веб-интерфейс", "React.js", "Интерфейс оператора кол-центра")
+    Container(cc_backend, "Бэкенд", "Java Spring Boot", "Логика обработки обращений")
+    ContainerDb(cc_database, "База данных", "PostgreSQL", "Хранилище данных кол-центра")
+}
+
+System_Boundary(c6, "Сервис ставок (новый)") {
+    Container(rate_service, "Сервис ставок", ".NET Framework 4.5", "Управление и расчет ставок по депозитам")
+    ContainerDb(rates_db, "База ставок", "MS SQL", "Хранилище актуальных ставок")
+    Container(rate_manager, "Менеджер ставок", "React.js", "Web-интерфейс управления ставками")
+    ContainerQueue(cache, "Кэш ставок", "Redis", "Кэширование актуальных ставок для пользователей")
+}
+
+System_Ext(sms_gateway, "СМС-шлюз телеком-оператора", "Шлюз для отправки СМС")
+
+Rel(client, ib_web, "Подает заявку на депозит", "HTTPS/TLS 1.2")
+Rel(client, website_ui, "Подает заявку на сайте", "HTTPS/TLS 1.2")
+
+Rel(backoffice_employee, admin_panel, "Обрабатывает заявки", "HTTPS")
+Rel(backoffice_employee, rate_manager, "Управляет ставками", "HTTPS")
+Rel(credit_employee, rate_manager, "Управляет ставками", "HTTPS")
+Rel(frontoffice_employee, abs_client, "Работает с клиентами", "Desktop")
+Rel(callcenter_agent, cc_web, "Обрабатывает заявки", "HTTPS")
+
+Rel(ib_web, ib_business, "Внутренние вызовы", "HTTP")
+Rel(ib_business, ib_database, "Работа с данными", "ADO.NET")
+Rel(ib_business, deposit_api, "Создание заявок на депозит", "REST/HTTPS")
+Rel(ib_business, rate_service, "Получение ставок", "REST/HTTPS")
+
+Rel(website_ui, deposit_api, "Отправка заявок", "REST/HTTPS")
+Rel(website_ui, rate_service, "Получение базовых ставок", "REST/HTTPS")
+
+Rel(deposit_api, deposit_db, "Сохранение заявок", "Entity Framework")
+Rel(deposit_api, cc_backend, "Передача заявок с сайта", "REST/HTTPS")
+Rel(deposit_api, admin_panel, "Предоставление данных", "REST/HTTPS")
+Rel(deposit_api, rate_service, "Валидация заявки", "REST/HTTPS")
+
+Rel(rate_service, rates_db, "Хранение ставок", "Entity Framework")
+Rel(rate_service, cache, "Кэширование ставок", "Redis")
+Rel(rate_manager, rate_service, "Управление ставками", "REST/HTTPS")
+
+Rel(backoffice_employee, abs_client, "Открытие депозитов в АБС", "Desktop client")
+
+Rel(cc_backend, deposit_api, "Получение заявок", "REST/HTTPS")
+Rel(cc_web, cc_backend, "Внутренние вызовы", "HTTP")
+Rel(cc_backend, cc_database, "Работа с данными", "JDBC")
+
+Rel(c4, sms_gateway, "Отправка СМС-уведомлений")
+Rel(c5, sms_gateway, "Отправка СМС-уведомлений и кодов")
+Rel(sms_gateway, client, "Получает СМС", "СМС")
+
+
+@enduml

@@ -1,0 +1,56 @@
+@startuml Container Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(credit_manager, "Кредитный менеджер", "Управляет ставками по депозитам")
+Person(callcenter_agent, "Оператор кол-центра", "Оператор в кол-центре банка")
+Person(partner_agent, "Оператор партнёра", "Оператор партнёрского кол-центра")
+
+System_Boundary(c1, "Сервис ставок (существующий)") {
+    Container(rate_service, "Сервис ставок", ".NET Framework 4.5", "Управление и расчет ставок по депозитам")
+    ContainerDb(rates_db, "База ставок", "MS SQL", "Хранилище актуальных ставок")
+    Container(rate_manager, "Менеджер ставок", "React.js", "Web-интерфейс управления ставками")
+    ContainerQueue(rate_cache, "Кэш ставок", "Redis", "Кэширование актуальных ставок")
+}
+
+System_Boundary(c2, "Система кол-центра банка (существующая)") {
+    Container(cc_web, "Веб-интерфейс", "React.js", "Интерфейс оператора кол-центра")
+    Container(cc_backend, "Бэкенд", "Java Spring Boot", "Логика обработки обращений")
+    ContainerDb(cc_database, "База данных", "PostgreSQL", "Хранилище данных кол-центра")
+}
+
+System_Boundary(c3, "Сервис выгрузки ставок (новый)") {
+    Container(export_service, "Сервис выгрузки", ".NET Framework 4.5", "Формирование и передача файлов партнёрам")
+    Container(scheduler, "Планировщик", ".NET Framework 4.5", "Автоматическая выгрузка по расписанию")
+}
+
+System_Boundary(c4, "Инфраструктура файлового обмена (новая)") {
+    Container(sftp_server, "SFTP Сервер", "OpenSSH", "Безопасный файловый обмен с партнёрами")
+}
+
+System_Boundary(c5, "Система партнёрского кол-центра (внешняя)") {
+    Container(partner_system, "Локальная система", "Проприетарная", "Система партнёрского кол-центра")
+    ContainerDb(partner_db, "База данных", "Проприетарная", "Локальное хранилище данных")
+}
+
+Rel(credit_manager, rate_manager, "Управляет ставками", "HTTPS")
+Rel(callcenter_agent, cc_web, "Консультирует клиентов", "HTTPS")
+Rel(partner_agent, partner_system, "Консультирует клиентов", "Локальный UI")
+
+Rel(rate_manager, rate_service, "Управление ставками через API", "REST/HTTPS")
+Rel(rate_service, rates_db, "Хранение ставок", "Entity Framework")
+Rel(rate_service, rate_cache, "Кэширование ставок", "Redis")
+
+Rel(cc_web, cc_backend, "Внутренние вызовы", "HTTP")
+Rel(cc_backend, cc_database, "Работа с данными", "JDBC")
+
+Rel(cc_backend, rate_service, "Получение актуальных ставок", "REST/HTTPS")
+
+Rel(scheduler, rate_service, "Запрос ставок для выгрузки", "REST/HTTPS")
+Rel(scheduler, export_service, "Запуск процесса выгрузки", "HTTP")
+Rel(export_service, sftp_server, "Загрузка файлов со ставками", "SFTP/SSH")
+
+Rel(sftp_server, partner_system, "Предоставление файлов для импорта", "SFTP/SSH")
+Rel(partner_system, partner_db, "Локальное хранение данных", "Проприетарный протокол")
+
+
+@enduml
