@@ -1,0 +1,36 @@
+@startuml Context Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(client, "Клиент", "Клиент банка")
+Person(frontoffice_employee, "Сотрудник отделения", "Менеджер фронт-офиса в отделении банка")
+Person(backoffice_employee, "Сотрудник бэк-офиса", "Менеджер депозитного бэк-офиса")
+Person(callcenter_agent, "Оператор кол-центра", "Оператор в кол-центре банка")
+Person(credit_employee, "Сотрудник кредитного отдела", "Менеджер кредитного бэк-офиса")
+
+System(bank_website, "Сайт банка", "Сайт банка с формой заявки на депозит")
+System(internet_bank, "Интернет-банк", "Система интернет-банкинга для существующих клиентов")
+System(abs, "АБС", "Автоматизированная банковская система для учета операций")
+System(callcenter_system, "Система кол-центра", "CRM система для обработки обращений клиентов")
+System(deposit_service, "Сервис депозитов MVP (новый)", "Управление заявками на депозиты")
+System(rate_service, "Сервис ставок (новый)", "Управление и расчет ставок по депозитам")
+System_Ext(sms_gateway, "СМС-шлюз телеком-оператора", "Шлюз для отправки СМС")
+
+Rel(client, bank_website, "Подает заявку на депозит", "HTTPS")
+Rel(client, internet_bank, "Открывает депозит онлайн", "HTTPS")
+Rel(sms_gateway, client, "Получает СМС", "СМС")
+Rel(frontoffice_employee, abs, "Работает с клиентами в отделении", "Desktop client")
+Rel(backoffice_employee, abs, "Открывает депозиты", "Desktop client")
+Rel(backoffice_employee, deposit_service, "Обрабатывает заявки на депозиты", "Admin panel")
+
+Rel(backoffice_employee, rate_service, "Управляет ставками", "Web-client")
+Rel(credit_employee, rate_service, "Управляет ставками", "Web-client")
+
+Rel(callcenter_agent, callcenter_system, "Обрабатывает звонки клиентов", "Web interface")
+Rel(bank_website, callcenter_system, "Передает заявки на обработку", "REST API")
+Rel(internet_bank, deposit_service, "Интегрируется для обработки заявок на депозит", "HTTPS")
+Rel(internet_bank, rate_service, "Интегрируется для получения актуальных ставок на депозит", "HTTPS")
+Rel(bank_website, rate_service, "Интегрируется для получения базовых ставок на депозит", "HTTPS")
+Rel(deposit_service, sms_gateway, "Отправляет СМС для подтверждения")
+Rel(abs, sms_gateway, "Отправляет уведомления клиентам")
+
+@enduml
