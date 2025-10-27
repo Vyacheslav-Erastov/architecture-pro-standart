@@ -1,0 +1,73 @@
+@startuml Container Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(client, "Клиент", "Клиент банка")
+Person(credit_employee, "Сотрудник кредитного отдела", "Менеджер кредитного бэк-офиса")
+
+System_Boundary(c1, "Интернет-банк (существующий)") {
+    Container(ib_web, "Веб-интерфейс", "ASP.NET MVC 4.5", "Веб-интерфейс интернет-банка")
+    Container(ib_business, "Бизнес-логика", ".NET Framework 4.5", "Бизнес-логика проведения операций")
+    ContainerDb(ib_database, "База данных", "MS SQL", "Хранилище данных интернет-банка")
+}
+
+System_Boundary(c3, "Сервис кредитов (новый)") {
+    Container(credit_api, "API кредитов", ".NET Framework 4.5", "REST API для управления кредитными заявками")
+    Container(scoring_scheduler, "Планировщик скоринга клиентов", ".NET Framework 4.5", "Запрашивает скоринг для предодобренных предложений")
+    Container(credit_service, "Сервис обработки заявок на кредиты", ".NET Framework 4.5",)
+    ContainerDb(credit_db, "База кредитных заявок", "MS SQL", "Хранилище кредитных заявок")
+    ContainerQueue(credit_cache, "Кеш персональных предложений", "Redis")
+}
+
+
+System_Boundary(c4, "АБС (существующая)") {
+    Container(abs_client, "Клиент АБС", "Delphi", "Десктопное приложение АБС")
+    ContainerDb(abs_database, "База АБС", "Oracle", "Основная база данных банка")
+}
+
+System_Boundary(c5, "Кредитный конвейер (существующий)") {
+    Container(credit_conveyor, "Кредитный конвейер", "Camunda BPM/Java", "Обработка кредитных заявок")
+    ContainerDb(conveyor_db, "База конвейера", "Oracle", "Хранилище процессов")
+}
+
+System_Boundary(c6, "Система кредитного скоринга") {
+    Container(scoring_service, "Сервис скоринга", "Python Flask/ML", "Сервис расчета кредитного рейтинга")
+    ContainerDb(scoring_db, "База скоринга", "PostgreSQL", "Хранилище рейтингов")
+}
+
+System_Ext(bki, "БКИ", "Бюро кредитных историй")
+System_Ext(sms_gateway, "СМС-шлюз телеком-оператора", "Интеграция с телеком-оператором")
+
+ContainerQueue(credit_queue, "Очередь событий по кредитным заявкам", "Kafka")
+
+Rel(client, ib_web, "Подает заявку на кредит", "HTTPS/TLS 1.2")
+
+Rel(credit_employee, credit_conveyor, "Обрабатывает кредитные заявки", "HTTPS")
+
+Rel(ib_web, ib_business, "Внутренние вызовы", "HTTP")
+Rel(ib_business, ib_database, "Работа с данными", "ADO.NET")
+Rel(ib_business, credit_api, "Создание кредитных заявок", "REST/HTTPS")
+
+
+Rel(credit_api, credit_service, "Вызывает")
+Rel(credit_service, credit_db, "Сохранение заявок")
+Rel(credit_service, credit_cache, "Кеширование персональных предложений")
+Rel(credit_service, credit_queue, "Подписан на события по обработке кредитных заявок")
+Rel(scoring_scheduler, credit_db, "Сохранение предодобренных заявок")
+Rel(scoring_scheduler, scoring_service, "Запрос скоринга", "REST/HTTPS")
+Rel(credit_api, credit_conveyor, "Передача заявок на обработку", "REST/HTTPS")
+Rel(credit_conveyor, credit_queue, "Публикует события обработки кредитных заявок")
+Rel(credit_service, c4, "Передача одобренных заявок")
+
+Rel(scoring_service, scoring_db, "Хранение моделей и результатов", "SQLAlchemy")
+Rel(scoring_service, abs_database, "Получение данных клиентов")
+Rel(scoring_service, bki, "Запрос кредитной истории", "REST/HTTPS")
+Rel(credit_conveyor, scoring_service, "Запрашивает скоринг для обработки заявок")
+
+Rel(c4, sms_gateway, "Отправка СМС")
+Rel(credit_service, sms_gateway, "Отправка СМС-кодов и уведомлений")
+Rel(sms_gateway, client, "Получает СМС")
+
+Rel(credit_conveyor, conveyor_db, "Хранение процессов", "JDBC")
+
+
+@enduml

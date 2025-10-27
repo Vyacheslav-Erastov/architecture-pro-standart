@@ -1,0 +1,35 @@
+@startuml Context Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(client, "Клиент", "Клиент банка")
+Person(credit_employee, "Сотрудник кредитного отдела", "Менеджер кредитного бэк-офиса")
+
+System(internet_bank, "Интернет-банк", "Система интернет-банкинга для существующих клиентов")
+System(abs, "АБС", "Автоматизированная банковская система для учета операций")
+System(credit_conveyor, "Кредитный конвейер", "BPM система обработки кредитных заявок")
+System(scoring_system, "Система скоринга", "Сервис расчета кредитного рейтинга")
+System(credit_system, "Сервис кредитов (новый)", "Сервис управления кредитными заявками и предложениями")
+
+System_Ext(sms_gateway, "СМС-шлюз телеком-оператора", "Шлюз для отправки СМС")
+System_Ext(bki, "БКИ", "Бюро кредитных историй")
+
+Rel(client, internet_bank, "Подает заявку на кредит, видит предодобренные предложения", "HTTPS")
+Rel(sms_gateway, client, "Получает СМС-подтверждение и уведомления", "SMS")
+
+Rel(credit_employee, credit_conveyor, "Обрабатывает кредитные заявки", "Web interface")
+
+Rel(internet_bank, credit_system, "Создание и просмотр кредитных заявок и предложений")
+Rel(credit_system, sms_gateway, "Отправляет СМС-кодов и уведомлений")
+Rel(credit_system, scoring_system, "Запрашивает скоринг для предодобренных предложений", "REST API")
+
+Rel(abs, sms_gateway, "Отправляет уведомления клиентам")
+
+Rel(credit_conveyor, scoring_system, "Запрашивает скоринг для обработки заявок", "REST API")
+Rel(credit_system, abs, "Передает результаты обработки заявок", "Database integration")
+Rel(credit_system, credit_conveyor, "Передача заявок на обработку", "REST/HTTPS")
+
+Rel(scoring_system, bki, "Запрашивает кредитную историю", "REST API")
+Rel(scoring_system, abs, "Получает данные о клиентах для анализа", "Database integration")
+
+
+@enduml
